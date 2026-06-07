@@ -2,7 +2,13 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { GoogleAuthProvider, signInWithPopup, signOut, User as FirebaseUser } from "firebase/auth";
+import { 
+  GoogleAuthProvider, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  signOut, 
+  User as FirebaseUser 
+} from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore, useUser } from "@/firebase";
 import { User } from "@/lib/models";
@@ -23,6 +29,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { user: fUser, loading: authLoading } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Process redirect result if any
+    getRedirectResult(auth).catch((error) => {
+      console.error("Erro ao processar resultado do redirecionamento de login:", error);
+    });
+  }, [auth]);
 
   useEffect(() => {
     async function fetchUserData() {
@@ -56,7 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    // Use Redirect instead of Popup to avoid blocked windows in preview/sandboxed environments
+    await signInWithRedirect(auth, provider);
   };
 
   const logout = async () => {

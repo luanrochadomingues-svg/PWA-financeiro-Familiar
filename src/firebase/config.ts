@@ -1,9 +1,10 @@
 
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKeyForInitialization",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+  apiKey: "AIzaSyBsT1DL8R6_ANSdi4eLBqf33JkASBQsP8A",
+  authDomain: "financeiro-casal-a0ee0.firebaseapp.com",
+  projectId: "financeiro-casal-a0ee0",
+  storageBucket: "financeiro-casal-a0ee0.firebasestorage.app",
+  messagingSenderId: "282316837521",
+  appId: "1:282316837521:web:6c95558f9e9ebb9084e530",
+  measurementId: "G-1BJ3N3R6WR"
 };
