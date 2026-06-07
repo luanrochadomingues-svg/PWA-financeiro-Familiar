@@ -3,9 +3,8 @@
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { AuthProvider } from "@/lib/contexts/AuthContext";
 
-function HomeContent() {
+export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -27,13 +26,5 @@ function HomeContent() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <AuthProvider>
-      <HomeContent />
-    </AuthProvider>
   );
 }
