@@ -1,0 +1,75 @@
+
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "currentHouseholdId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Household": {
+      "title": "Household",
+      "description": "A financial household group (family/couple)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Movement": {
+      "title": "Movement",
+      "description": "Financial income or expense record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "householdId": { "type": "string" },
+        "ownerUserId": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "categoryId": { "type": "string" },
+        "categoryName": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "businessId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "caseReference": { "type": "string" },
+        "transferId": { "type": "string" }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google.com"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Store user profile data"
+    },
+    "/households/{householdId}": {
+      "schema": "Household",
+      "description": "Main household document"
+    },
+    "/households/{householdId}/members/{userId}": {
+      "schema": "object",
+      "description": "Household membership and roles"
+    },
+    "/households/{householdId}/personalMovements/{movementId}": {
+      "schema": "Movement",
+      "description": "Personal financial records"
+    },
+    "/households/{householdId}/businessMovements/{movementId}": {
+      "schema": "Movement",
+      "description": "Business/Office financial records"
+    }
+  }
+}
