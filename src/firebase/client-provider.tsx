@@ -14,19 +14,21 @@ export function FirebaseClientProvider({
     auth: any;
     db: any;
   } | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Only initialize on the client after mount to avoid hydration mismatches
-    // and "server/client branch" errors.
+    // Defer initialization to after the first mount to ensure the 
+    // initial client render matches the server render exactly.
+    setMounted(true);
     const instances = initializeFirebase();
     setFirebase(instances);
   }, []);
 
-  if (!firebase) {
-    // Return a consistent placeholder during SSR and initial client hydration
-    // to prevent mismatching content that relies on Firebase state.
+  // During SSR and the first client-side render (hydration), mounted is false.
+  // This ensures the HTML structure remains stable during hydration.
+  if (!mounted || !firebase) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center" suppressHydrationWarning>
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
