@@ -3,18 +3,16 @@ import {
   collection, 
   doc, 
   setDoc, 
-  getDoc, 
   getDocs, 
   query, 
   where, 
   orderBy, 
   addDoc, 
   serverTimestamp, 
-  updateDoc,
   deleteDoc,
   writeBatch
 } from "firebase/firestore";
-import { Household, Movement, BusinessMovement, HouseholdMember } from "@/lib/models";
+import { Movement, BusinessMovement, HouseholdMember } from "@/lib/models";
 
 export const createHousehold = async (userId: string, name: string, userEmail: string, userName: string) => {
   const householdRef = doc(collection(db, "households"));
@@ -37,34 +35,27 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
   };
 
   const batch = writeBatch(db);
+  
+  // 1. Cria o Household
   batch.set(householdRef, householdData);
+  
+  // 2. Cria o registro de membro para o usuário atual
   batch.set(doc(db, "households", householdId, "members", userId), memberData);
-  batch.update(doc(db, "users", userId), { currentHouseholdId: householdId });
+  
+  // 3. Atualiza o perfil do usuário com o ID do household atual
+  batch.update(doc(db, "users", userId), { 
+    currentHouseholdId: householdId,
+    updatedAt: serverTimestamp() 
+  });
 
-  // Create default categories
+  // 4. Cria categorias padrão (Opcional, mas útil para o MVP)
   const categoriesRef = collection(db, "households", householdId, "categories");
   const defaults = [
     { name: 'Salário', type: 'personal_income' },
-    { name: 'Retirada Pró-labore', type: 'personal_income' },
-    { name: 'Outras Receitas', type: 'personal_income' },
     { name: 'Alimentação', type: 'personal_expense' },
     { name: 'Moradia', type: 'personal_expense' },
-    { name: 'Transporte', type: 'personal_expense' },
-    { name: 'Saúde', type: 'personal_expense' },
-    { name: 'Lazer', type: 'personal_expense' },
-    { name: 'Outras Despesas', type: 'personal_expense' },
-    { name: 'Honorários Advocatícios', type: 'business_income' },
-    { name: 'Honorários de Êxito', type: 'business_income' },
-    { name: 'Consultas', type: 'business_income' },
-    { name: 'Parcela Recebida', type: 'business_income' },
-    { name: 'Outras Receitas Escritório', type: 'business_income' },
-    { name: 'Aluguel Escritório', type: 'business_expense' },
-    { name: 'Internet', type: 'business_expense' },
-    { name: 'Marketing', type: 'business_expense' },
-    { name: 'Sistemas Jurídicos', type: 'business_expense' },
-    { name: 'Contabilidade', type: 'business_expense' },
-    { name: 'Materiais de Escritório', type: 'business_expense' },
-    { name: 'Retirada Pró-labore', type: 'business_expense' },
+    { name: 'Honorários', type: 'business_income' },
+    { name: 'Aluguel Escritório', type: 'business_expense' }
   ];
 
   defaults.forEach(cat => {
@@ -117,7 +108,7 @@ export const createProLabore = async (householdId: string, data: {
   batch.set(businessRef, {
     id: businessRef.id,
     householdId,
-    businessId: 'main', // Default business for MVP
+    businessId: 'main',
     date: data.date,
     type: 'expense',
     categoryId: 'pro-labore',
@@ -161,10 +152,9 @@ export const createProLabore = async (householdId: string, data: {
 
 export const getMovements = async (householdId: string, type: 'personal' | 'business', userId?: string) => {
   const collectionName = type === 'personal' ? 'personalMovements' : 'businessMovements';
-  let q = query(
-    collection(db, "households", householdId, collectionName),
-    orderBy("date", "desc")
-  );
+  const movementsRef = collection(db, "households", householdId, collectionName);
+  
+  let q = query(movementsRef, orderBy("date", "desc"));
 
   if (userId && type === 'personal') {
     q = query(q, where("ownerUserId", "==", userId));
