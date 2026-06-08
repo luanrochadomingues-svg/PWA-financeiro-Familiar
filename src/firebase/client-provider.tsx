@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -31,15 +32,11 @@ export function FirebaseClientProvider({
       });
     }
 
-    // Defer initialization to after the first mount to ensure the 
-    // initial client render matches the server render exactly.
     setMounted(true);
     const instances = initializeFirebase();
     setFirebase(instances);
   }, []);
 
-  // During SSR and the first client-side render (hydration), mounted is false.
-  // This ensures the HTML structure remains stable during hydration.
   if (!mounted || !firebase) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" suppressHydrationWarning>

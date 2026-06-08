@@ -1,29 +1,31 @@
-const CACHE_NAME = 'nexo-pwa-v1';
+
+const CACHE_NAME = 'nexo-v1';
 const ASSETS_TO_CACHE = [
   '/',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/apple-touch-icon.png'
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE).catch(() => {
-        // Fallback se algum ícone ainda não existir
-        return cache.add('/');
-      });
+      // Usamos Promise.allSettled para que a falha em um arquivo (ex: ícones ainda não criados)
+      // não impeça o registro bem-sucedido do Service Worker.
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map(url => cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err)))
+      );
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
       );
     })
   );
@@ -31,12 +33,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const url = new URL(request.url);
 
-  // Ignorar chamadas para Firebase Auth/Firestore e Google Fonts
+  // Não fazer cache de requisições que não sejam GET ou que sejam para o Firebase/Google APIs
   if (
-    request.url.includes('googleapis.com') ||
-    request.url.includes('firebase') ||
-    request.url.includes('identitytoolkit')
+    request.method !== 'GET' || 
+    url.hostname.includes('firebase') || 
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('google')
   ) {
     return;
   }
@@ -44,7 +48,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((response) => {
       return response || fetch(request).catch(() => {
-        // Se falhar e for uma navegação, retorna a página inicial (cache shell)
+        // Fallback básico se estiver offline e o recurso não estiver no cache
         if (request.mode === 'navigate') {
           return caches.match('/');
         }

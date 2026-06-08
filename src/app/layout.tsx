@@ -1,3 +1,4 @@
+
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -8,9 +9,6 @@ export const metadata: Metadata = {
   title: 'Nexo Financeiro',
   description: 'Gestão financeira familiar e empresarial inteligente',
   manifest: '/manifest.json',
-  icons: {
-    apple: '/icons/apple-touch-icon.png',
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -37,6 +35,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
       <body 
         className="font-body antialiased bg-background text-foreground selection:bg-primary selection:text-primary-foreground overflow-x-hidden"
