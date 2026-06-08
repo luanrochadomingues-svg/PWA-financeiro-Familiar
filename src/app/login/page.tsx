@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -5,23 +6,29 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LogIn } from "lucide-react";
+import { LogIn, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const { user, signInWithGoogle, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       if (user.currentHouseholdId) {
         router.push("/pessoal");
       } else {
         router.push("/onboarding");
       }
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

@@ -1,8 +1,8 @@
+
 import { db } from "@/lib/firebase";
 import { 
   collection, 
   doc, 
-  setDoc, 
   getDocs, 
   query, 
   where, 
@@ -48,7 +48,7 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
     updatedAt: serverTimestamp() 
   });
 
-  // 4. Cria categorias padrão (Opcional, mas útil para o MVP)
+  // 4. Cria categorias padrão
   const categoriesRef = collection(db, "households", householdId, "categories");
   const defaults = [
     { name: 'Salário', type: 'personal_income' },
@@ -106,7 +106,6 @@ export const createProLabore = async (householdId: string, data: {
   const personalRef = doc(collection(db, "households", householdId, "personalMovements"));
 
   batch.set(businessRef, {
-    id: businessRef.id,
     householdId,
     businessId: 'main',
     date: data.date,
@@ -121,7 +120,6 @@ export const createProLabore = async (householdId: string, data: {
   });
 
   batch.set(personalRef, {
-    id: personalRef.id,
     householdId,
     ownerUserId: data.userId,
     date: data.date,

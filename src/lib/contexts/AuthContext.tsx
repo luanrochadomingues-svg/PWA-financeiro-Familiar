@@ -7,10 +7,11 @@ import {
   signInWithRedirect, 
   getRedirectResult, 
   signOut, 
+  onAuthStateChanged,
   User as FirebaseUser 
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { useAuth as useFirebaseAuth, useFirestore, useUser } from "@/firebase";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { useAuth as useFirebaseAuth, useFirestore } from "@/firebase";
 import { User } from "@/lib/models";
 
 interface AuthContextType {
@@ -26,59 +27,65 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useFirebaseAuth();
   const db = useFirestore();
-  const { user: fUser, loading: authLoading } = useUser();
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Process redirect result if any
     getRedirectResult(auth).catch((error) => {
-      console.error("Erro ao processar resultado do redirecionamento de login:", error);
+      console.error("Erro ao processar redirecionamento:", error);
     });
-  }, [auth]);
 
-  useEffect(() => {
-    async function fetchUserData() {
+    let unsubscribeProfile: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
+      setFirebaseUser(fUser);
+      
       if (fUser) {
         const userRef = doc(db, "users", fUser.uid);
-        const userDoc = await getDoc(userRef);
-
-        if (!userDoc.exists()) {
-          const newUser: User = {
-            uid: fUser.uid,
-            displayName: fUser.displayName || "Usuário",
-            email: fUser.email || "",
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-          await setDoc(userRef, newUser);
-          setUser(newUser);
-        } else {
-          setUser(userDoc.data() as User);
-        }
+        
+        // Listener em tempo real para o perfil do usuário
+        unsubscribeProfile = onSnapshot(userRef, async (snapshot) => {
+          if (!snapshot.exists()) {
+            const newUser: User = {
+              uid: fUser.uid,
+              displayName: fUser.displayName || "Usuário",
+              email: fUser.email || "",
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            };
+            // Cria o documento se não existir
+            await setDoc(userRef, newUser);
+          } else {
+            setUser(snapshot.data() as User);
+            setLoading(false);
+          }
+        });
       } else {
         setUser(null);
+        setLoading(false);
       }
-      setLoading(false);
-    }
+    });
 
-    if (!authLoading) {
-      fetchUserData();
-    }
-  }, [fUser, authLoading, db]);
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
+  }, [auth, db]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Use Redirect instead of Popup to avoid blocked windows in preview/sandboxed environments
     await signInWithRedirect(auth, provider);
   };
 
   const logout = async () => {
+    setLoading(true);
     await signOut(auth);
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser: fUser, loading: loading || authLoading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -87,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
 };
