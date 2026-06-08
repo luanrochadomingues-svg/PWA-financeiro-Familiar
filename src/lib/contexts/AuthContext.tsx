@@ -7,6 +7,9 @@ import {
   getRedirectResult, 
   signOut, 
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
   User as FirebaseUser 
 } from "firebase/auth";
 import { doc, onSnapshot, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
@@ -19,6 +22,8 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -36,7 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Process redirect results (Google Login)
     getRedirectResult(auth).catch((err) => {
       console.error("Auth redirect error:", err);
-      setError("Falha ao processar login com Google: " + err.message);
+      if (err.code !== 'auth/popup-blocked') {
+        setError("Falha ao processar login com Google: " + err.message);
+      }
     });
 
     let unsubscribeProfile: (() => void) | undefined;
@@ -102,7 +109,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithRedirect(auth, provider);
     } catch (err: any) {
-      setError("Não foi possível iniciar o login: " + err.message);
+      setError("Não foi possível iniciar o login com Google: " + err.message);
+    }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(userCredential.user, { displayName: name });
+      // Firestore profile creation is handled in onAuthStateChanged
+    } catch (err: any) {
+      setError("Erro ao criar conta: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  const signInWithEmail = async (email: string, pass: string) => {
+    setError(null);
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err: any) {
+      setError("Erro ao entrar: " + err.message);
+      setLoading(false);
     }
   };
 
@@ -112,7 +143,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, error, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      firebaseUser, 
+      loading, 
+      error, 
+      signInWithGoogle, 
+      signUpWithEmail, 
+      signInWithEmail, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );
