@@ -4,7 +4,7 @@ export interface User {
   email: string;
   createdAt: any;
   updatedAt: any;
-  currentHouseholdId?: string;
+  currentHouseholdId?: string | null;
 }
 
 export interface Household {

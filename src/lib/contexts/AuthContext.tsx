@@ -17,6 +17,7 @@ interface AuthContextType {
   user: User | null;
   firebaseUser: FirebaseUser | null;
   loading: boolean;
+  error: string | null;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -29,47 +30,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check redirect result on mount
-    getRedirectResult(auth).catch((error) => {
-      console.error("Auth redirect error:", error);
+    // Process redirect results (Google Login)
+    getRedirectResult(auth).catch((err) => {
+      console.error("Auth redirect error:", err);
+      setError("Falha ao processar login com Google: " + err.message);
     });
 
     let unsubscribeProfile: (() => void) | undefined;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (fUser) => {
+      console.log("Auth state changed:", fUser?.uid);
       setFirebaseUser(fUser);
       
       if (fUser) {
+        setLoading(true);
         const userRef = doc(db, "users", fUser.uid);
         
-        // Ensure user document exists
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          try {
+        try {
+          // Check if profile exists, if not, create it
+          const userSnap = await getDoc(userRef);
+          if (!userSnap.exists()) {
+            console.log("Creating new user profile for:", fUser.uid);
             await setDoc(userRef, {
               uid: fUser.uid,
               displayName: fUser.displayName || "Usuário",
               email: fUser.email || "",
+              currentHouseholdId: null,
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
             });
-          } catch (e) {
-            console.error("Error creating user profile:", e);
           }
-        }
 
-        // Real-time listener for profile changes (like currentHouseholdId)
-        unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
-          if (snapshot.exists()) {
-            setUser(snapshot.data() as User);
-          }
+          // Real-time listener for profile changes
+          unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
+            if (snapshot.exists()) {
+              console.log("Profile loaded:", snapshot.data());
+              setUser(snapshot.data() as User);
+            } else {
+              console.warn("User profile document not found during snapshot");
+              setUser(null);
+            }
+            setLoading(false);
+          }, (err) => {
+            console.error("Profile snapshot error:", err);
+            setError("Erro ao carregar perfil: " + err.message);
+            setLoading(false);
+          });
+        } catch (err: any) {
+          console.error("Critical error in user profile sync:", err);
+          setError("Erro crítico de banco de dados: " + err.message);
           setLoading(false);
-        }, (error) => {
-          console.error("Profile snapshot error:", error);
-          setLoading(false);
-        });
+        }
       } else {
         setUser(null);
         setLoading(false);
@@ -83,8 +97,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [auth, db]);
 
   const signInWithGoogle = async () => {
+    setError(null);
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (err: any) {
+      setError("Não foi possível iniciar o login: " + err.message);
+    }
   };
 
   const logout = async () => {
@@ -93,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, error, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

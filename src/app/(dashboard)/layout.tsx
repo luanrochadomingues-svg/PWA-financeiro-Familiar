@@ -7,30 +7,35 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 function DashboardGuard({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, firebaseUser, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     if (!loading) {
-      if (!user) {
+      if (!firebaseUser) {
+        // Not authenticated at all
         router.push("/login");
-      } else if (!user.currentHouseholdId && pathname !== "/onboarding") {
+      } else if (user && !user.currentHouseholdId && pathname !== "/onboarding") {
+        // Authenticated but no household
         router.push("/onboarding");
       }
     }
-  }, [user, loading, router, pathname]);
+  }, [user, firebaseUser, loading, router, pathname]);
 
-  if (loading) {
+  if (loading || (firebaseUser && !user)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Carregando dados da família...</p>
+        </div>
       </div>
     );
   }
 
-  // Se não houver usuário, o useEffect redirecionará, mas evitamos flash de conteúdo
-  if (!user) return null;
+  // Se não houver firebaseUser, o useEffect redirecionará, evitamos flash de conteúdo
+  if (!firebaseUser) return null;
 
   return (
     <div className="min-h-screen bg-background pb-20 overflow-x-hidden">

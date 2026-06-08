@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -6,26 +5,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LogIn, Loader2 } from "lucide-react";
+import { LogIn, Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 export default function LoginPage() {
-  const { user, signInWithGoogle, loading } = useAuth();
+  const { user, firebaseUser, signInWithGoogle, loading, error } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
+    // Only redirect if NOT loading and user data is resolved
+    if (!loading && firebaseUser && user) {
       if (user.currentHouseholdId) {
         router.push("/pessoal");
       } else {
         router.push("/onboarding");
       }
     }
-  }, [user, loading, router]);
+  }, [user, firebaseUser, loading, router]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground animate-pulse font-medium">Validando sua sessão...</p>
+        </div>
       </div>
     );
   }
@@ -42,14 +46,23 @@ export default function LoginPage() {
             <CardDescription className="text-lg">Gestão inteligente para você, sua família e seu escritório.</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-6">
+          {error && (
+            <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erro de Autenticação</AlertTitle>
+              <AlertDescription className="text-xs">{error}</AlertDescription>
+            </Alert>
+          )}
+
           <Button 
             onClick={signInWithGoogle} 
-            className="w-full h-12 text-lg font-semibold gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg"
+            className="w-full h-12 text-lg font-semibold gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg"
           >
             <LogIn className="w-5 h-5" />
             Entrar com Google
           </Button>
+          
           <p className="text-center text-sm text-muted-foreground mt-8">
             Ao entrar, você concorda com nossos termos de uso e política de privacidade.
           </p>
