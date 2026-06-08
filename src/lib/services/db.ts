@@ -1,4 +1,3 @@
-
 import { db } from "@/lib/firebase";
 import { 
   collection, 
@@ -36,20 +35,19 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
 
   const batch = writeBatch(db);
   
-  // 1. Cria o Household
+  // 1. Create the Household
   batch.set(householdRef, householdData);
   
-  // 2. Cria o registro de membro para o usuário atual
+  // 2. Create membership for the current user
   batch.set(doc(db, "households", householdId, "members", userId), memberData);
   
-  // 3. Atualiza o perfil do usuário com o ID do household atual
+  // 3. Update user profile with currentHouseholdId
   batch.update(doc(db, "users", userId), { 
     currentHouseholdId: householdId,
     updatedAt: serverTimestamp() 
   });
 
-  // 4. Cria categorias padrão
-  const categoriesRef = collection(db, "households", householdId, "categories");
+  // 4. Create default categories
   const defaults = [
     { name: 'Salário', type: 'personal_income' },
     { name: 'Alimentação', type: 'personal_expense' },
@@ -59,7 +57,7 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
   ];
 
   defaults.forEach(cat => {
-    const catDoc = doc(categoriesRef);
+    const catDoc = doc(collection(db, "households", householdId, "categories"));
     batch.set(catDoc, { ...cat, id: catDoc.id });
   });
 

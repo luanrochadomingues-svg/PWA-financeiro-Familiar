@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -10,7 +9,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser 
 } from "firebase/auth";
-import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore } from "@/firebase";
 import { User } from "@/lib/models";
 
@@ -32,9 +31,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Process redirect result if any
+    // Check redirect result on mount
     getRedirectResult(auth).catch((error) => {
-      console.error("Erro ao processar redirecionamento:", error);
+      console.error("Auth redirect error:", error);
     });
 
     let unsubscribeProfile: (() => void) | undefined;
@@ -45,22 +44,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (fUser) {
         const userRef = doc(db, "users", fUser.uid);
         
-        // Listener em tempo real para o perfil do usuário
-        unsubscribeProfile = onSnapshot(userRef, async (snapshot) => {
-          if (!snapshot.exists()) {
-            const newUser: User = {
+        // Ensure user document exists
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          try {
+            await setDoc(userRef, {
               uid: fUser.uid,
               displayName: fUser.displayName || "Usuário",
               email: fUser.email || "",
               createdAt: serverTimestamp(),
               updatedAt: serverTimestamp(),
-            };
-            // Cria o documento se não existir
-            await setDoc(userRef, newUser);
-          } else {
-            setUser(snapshot.data() as User);
-            setLoading(false);
+            });
+          } catch (e) {
+            console.error("Error creating user profile:", e);
           }
+        }
+
+        // Real-time listener for profile changes (like currentHouseholdId)
+        unsubscribeProfile = onSnapshot(userRef, (snapshot) => {
+          if (snapshot.exists()) {
+            setUser(snapshot.data() as User);
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Profile snapshot error:", error);
+          setLoading(false);
         });
       } else {
         setUser(null);
@@ -94,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

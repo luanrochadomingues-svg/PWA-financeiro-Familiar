@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { addPersonalMovement, addBusinessMovement } from "@/lib/services/db";
-import { suggestCategory } from "@/ai/flows/suggest-category";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles } from "lucide-react";
 
 interface MovementFormProps {
   type: 'personal' | 'business';
@@ -34,20 +32,6 @@ export function MovementForm({ type, isOpen, onClose }: MovementFormProps) {
   const availableCategories = type === 'personal' 
     ? ['Salário', 'Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Lazer', 'Outras Receitas', 'Outras Despesas']
     : ['Honorários', 'Consultas', 'Aluguel Escritório', 'Marketing', 'Contabilidade', 'Internet'];
-
-  const handleSuggest = async () => {
-    if (!formData.description) return;
-    try {
-      const result = await suggestCategory({
-        description: formData.description,
-        availableCategories
-      });
-      setFormData(prev => ({ ...prev, category: result.suggestedCategory }));
-      toast({ title: "AI Ativada!", description: `Sugerimos a categoria: ${result.suggestedCategory}` });
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +62,15 @@ export function MovementForm({ type, isOpen, onClose }: MovementFormProps) {
       }
 
       toast({ title: "Sucesso", description: "Lançamento adicionado." });
+      setFormData({
+        description: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        category: '',
+        moveType: 'expense',
+        clientName: '',
+        caseReference: ''
+      });
       onClose();
     } catch (e) {
       toast({ variant: "destructive", title: "Erro", description: "Falha ao salvar." });
@@ -114,17 +107,13 @@ export function MovementForm({ type, isOpen, onClose }: MovementFormProps) {
 
           <div className="space-y-2">
             <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Descrição</label>
-            <div className="relative">
-              <Input 
-                required 
-                placeholder="Ex: Almoço, Honorário Dr. Pedro..." 
-                value={formData.description}
-                onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
-                onBlur={handleSuggest}
-                className="h-12"
-              />
-              <Sparkles className="absolute right-3 top-3.5 w-5 h-5 text-primary/40 pointer-events-none" />
-            </div>
+            <Input 
+              required 
+              placeholder="Ex: Almoço, Honorário Dr. Pedro..." 
+              value={formData.description}
+              onChange={e => setFormData(p => ({ ...p, description: e.target.value }))}
+              className="h-12"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -30,6 +29,7 @@ function DashboardGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // Se não houver usuário, o useEffect redirecionará, mas evitamos flash de conteúdo
   if (!user) return null;
 
   return (

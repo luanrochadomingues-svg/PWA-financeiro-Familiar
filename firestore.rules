@@ -1,45 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper para verificar se o usuário está autenticado
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper para verificar se o usuário é o dono do documento
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Helper para verificar se o usuário é membro do household
     function isHouseholdMember(householdId) {
       return isAuthenticated() && 
         exists(/databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid));
     }
 
-    // Perfis de usuário: Apenas o próprio usuário pode ler/escrever
     match /users/{userId} {
       allow read, write: if isOwner(userId);
     }
 
-    // Households
     match /households/{householdId} {
-      // Permite criar se o usuário se definir como criador
       allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
-      
-      // Permite leitura e atualização apenas para membros
       allow read, update: if isHouseholdMember(householdId);
 
-      // Subcoleção de membros
       match /members/{userId} {
-        // Um usuário sempre pode ver sua própria filiação ou se já for membro da casa
         allow read: if isOwner(userId) || isHouseholdMember(householdId);
-        
-        // Um usuário pode criar/editar sua própria filiação (essencial para o onboarding)
         allow write: if isOwner(userId);
       }
 
-      // Movimentações Pessoais e Jurídicas: Apenas membros podem acessar
       match /personalMovements/{movementId} {
         allow read, write: if isHouseholdMember(householdId);
       }
@@ -48,7 +35,6 @@ service cloud.firestore {
         allow read, write: if isHouseholdMember(householdId);
       }
       
-      // Transferências e Categorias: Apenas membros
       match /transfers/{transferId} {
         allow read, write: if isHouseholdMember(householdId);
       }
