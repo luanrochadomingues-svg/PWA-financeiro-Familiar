@@ -19,10 +19,12 @@ service cloud.firestore {
     }
 
     match /households/{householdId} {
+      // Permite criar o household se o criador for o usuário logado
       allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
       allow read, update: if isHouseholdMember(householdId);
 
       match /members/{userId} {
+        // Permite ao usuário criar seu próprio registro de membro durante o onboarding
         allow read: if isOwner(userId) || isHouseholdMember(householdId);
         allow write: if isOwner(userId);
       }

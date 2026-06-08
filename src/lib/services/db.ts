@@ -33,21 +33,22 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
     joinedAt: serverTimestamp(),
   };
 
-  const batch = writeBatch(db);
+  // LOTE 1: Criar a base do Household e Membership
+  // Isso garante que o 'isHouseholdMember' nas regras de segurança passará para os próximos passos
+  const batch1 = writeBatch(db);
   
-  // 1. Create the Household
-  batch.set(householdRef, householdData);
-  
-  // 2. Create membership for the current user
-  batch.set(doc(db, "households", householdId, "members", userId), memberData);
-  
-  // 3. Update user profile with currentHouseholdId
-  batch.update(doc(db, "users", userId), { 
+  batch1.set(householdRef, householdData);
+  batch1.set(doc(db, "households", householdId, "members", userId), memberData);
+  batch1.update(doc(db, "users", userId), { 
     currentHouseholdId: householdId,
     updatedAt: serverTimestamp() 
   });
 
-  // 4. Create default categories
+  await batch1.commit();
+
+  // LOTE 2: Criar categorias padrão
+  // Agora que o membro já existe no banco, as regras de segurança permitirão a escrita nas sub-coleções
+  const batch2 = writeBatch(db);
   const defaults = [
     { name: 'Salário', type: 'personal_income' },
     { name: 'Alimentação', type: 'personal_expense' },
@@ -58,10 +59,11 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
 
   defaults.forEach(cat => {
     const catDoc = doc(collection(db, "households", householdId, "categories"));
-    batch.set(catDoc, { ...cat, id: catDoc.id });
+    batch2.set(catDoc, { ...cat, id: catDoc.id });
   });
 
-  await batch.commit();
+  await batch2.commit();
+  
   return householdId;
 };
 
