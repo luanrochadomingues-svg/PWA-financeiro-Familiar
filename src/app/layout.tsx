@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: 'Nexo Financeiro',
   description: 'Gestão financeira familiar e empresarial inteligente',
   manifest: '/manifest.json',
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

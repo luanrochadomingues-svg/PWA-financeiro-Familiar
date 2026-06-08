@@ -1,20 +1,22 @@
 {
   "name": "Nexo Financeiro",
   "short_name": "Nexo",
-  "description": "Gestão financeira familiar e empresarial",
+  "description": "Gestão financeira familiar e empresarial inteligente",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#22232B",
-  "theme_color": "#8C96D9",
+  "theme_color": "#22232B",
+  "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/nexo192/192/192",
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/nexo512/512/512",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

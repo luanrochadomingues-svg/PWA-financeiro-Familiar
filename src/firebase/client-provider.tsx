@@ -17,6 +17,20 @@ export function FirebaseClientProvider({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Service Worker Registration
+    if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(
+          (registration) => {
+            console.log('SW registered: ', registration.scope);
+          },
+          (err) => {
+            console.log('SW registration failed: ', err);
+          }
+        );
+      });
+    }
+
     // Defer initialization to after the first mount to ensure the 
     // initial client render matches the server render exactly.
     setMounted(true);
