@@ -7,24 +7,36 @@ import {
   where, 
   orderBy, 
   addDoc, 
+  setDoc,
+  updateDoc,
   serverTimestamp, 
   deleteDoc,
   writeBatch
 } from "firebase/firestore";
 import { Movement, BusinessMovement, HouseholdMember } from "@/lib/models";
 
+/**
+ * Cria um novo Household em 3 etapas sequenciais para garantir 
+ * que as regras de segurança do Firestore sejam aplicadas corretamente.
+ */
 export const createHousehold = async (userId: string, name: string, userEmail: string, userName: string) => {
   const householdRef = doc(collection(db, "households"));
   const householdId = householdRef.id;
 
-  const householdData = {
+  // ETAPA 1: Criar o documento do Household
+  // Permissão: allow create se createdBy == auth.uid
+  await setDoc(householdRef, {
     id: householdId,
     name,
     createdBy: userId,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  };
+  });
 
+  // ETAPA 2: Criar o registro de membro e atualizar o perfil do usuário
+  // Permissão: allow write em members/{uid} se uid == auth.uid
+  const batch1 = writeBatch(db);
+  
   const memberData: HouseholdMember = {
     userId,
     role: 'owner',
@@ -33,11 +45,6 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
     joinedAt: serverTimestamp(),
   };
 
-  // LOTE 1: Criar a base do Household e Membership
-  // Isso garante que o 'isHouseholdMember' nas regras de segurança passará para os próximos passos
-  const batch1 = writeBatch(db);
-  
-  batch1.set(householdRef, householdData);
   batch1.set(doc(db, "households", householdId, "members", userId), memberData);
   batch1.update(doc(db, "users", userId), { 
     currentHouseholdId: householdId,
@@ -46,15 +53,22 @@ export const createHousehold = async (userId: string, name: string, userEmail: s
 
   await batch1.commit();
 
-  // LOTE 2: Criar categorias padrão
-  // Agora que o membro já existe no banco, as regras de segurança permitirão a escrita nas sub-coleções
+  // ETAPA 3: Criar categorias padrão
+  // Permissão: allow write se isHouseholdMember(householdId)
+  // Agora que o passo 2 foi commitado, o usuário já é reconhecido como membro.
   const batch2 = writeBatch(db);
   const defaults = [
     { name: 'Salário', type: 'personal_income' },
     { name: 'Alimentação', type: 'personal_expense' },
     { name: 'Moradia', type: 'personal_expense' },
+    { name: 'Transporte', type: 'personal_expense' },
+    { name: 'Saúde', type: 'personal_expense' },
+    { name: 'Lazer', type: 'personal_expense' },
     { name: 'Honorários', type: 'business_income' },
-    { name: 'Aluguel Escritório', type: 'business_expense' }
+    { name: 'Consultas', type: 'business_income' },
+    { name: 'Aluguel Escritório', type: 'business_expense' },
+    { name: 'Marketing', type: 'business_expense' },
+    { name: 'Internet', type: 'business_expense' }
   ];
 
   defaults.forEach(cat => {

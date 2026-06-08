@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,12 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Home, Loader2 } from "lucide-react";
+import { Users, Home, Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function OnboardingPage() {
   const { user, loading: authLoading } = useAuth();
   const [name, setName] = useState("Minha Família");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -29,14 +30,20 @@ export default function OnboardingPage() {
   const handleCreate = async () => {
     if (!user) return;
     setLoading(true);
+    setError(null);
     try {
       await createHousehold(user.uid, name, user.email, user.displayName);
       toast({ title: "Bem-vindo!", description: "Sua casa financeira foi criada com sucesso." });
-      // O AuthContext (onSnapshot) atualizará o estado do usuário automaticamente
       router.push("/pessoal");
-    } catch (e) {
-      console.error(e);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a casa financeira." });
+    } catch (e: any) {
+      console.error("Erro ao criar household:", e);
+      const errorMessage = e.message || "Erro desconhecido ao criar a casa financeira.";
+      setError(errorMessage);
+      toast({ 
+        variant: "destructive", 
+        title: "Erro de Permissão", 
+        description: "Não foi possível criar a casa financeira. Verifique os detalhes abaixo." 
+      });
     } finally {
       setLoading(false);
     }
@@ -59,6 +66,16 @@ export default function OnboardingPage() {
           <CardDescription className="text-lg">Vamos dar um nome para a sua gestão financeira familiar.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Falha no Firestore</AlertTitle>
+              <AlertDescription className="text-xs break-all">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-medium text-muted-foreground ml-1">Nome do Household</label>
             <Input 
